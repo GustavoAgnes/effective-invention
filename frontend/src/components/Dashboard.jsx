@@ -109,12 +109,30 @@ const Dashboard = ({ user, onLogout }) => {
   const loadActiveRequests = async () => {
     setLoadingRequests(true)
     try {
-      const response = await axios.get('http://localhost:8080/api/requests/active')
+      const response = await axios.get(`http://localhost:8080/api/requests/active?email=${user.email}`)
       setActiveRequests(response.data)
     } catch (error) {
       console.error('Error loading active requests:', error)
     } finally {
       setLoadingRequests(false)
+    }
+  }
+
+  // Reject request (woodworker doesn't want to see this request)
+  const handleRejectRequest = async (requestId) => {
+    if (!confirm('Deseja ocultar esta solicitação? Ela não aparecerá mais na sua lista.')) return
+    
+    try {
+      const response = await axios.post(
+        `http://localhost:8080/api/requests/reject?email=${user.email}&requestId=${requestId}`
+      )
+      if (response.data.success) {
+        alert('✅ Solicitação ocultada com sucesso!')
+        loadActiveRequests() // Reload list
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error)
+      alert('❌ Erro ao ocultar solicitação.')
     }
   }
 
@@ -718,7 +736,7 @@ const Dashboard = ({ user, onLogout }) => {
                           {request.budget && <span className="spec-tag">💰 {request.budget}</span>}
                           {!request.budget && <span className="spec-tag">💰 Orçamento aberto</span>}
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button className="proposal-btn" onClick={() => openProposalModal(request)}>
                             Enviar Proposta
                           </button>
@@ -727,6 +745,16 @@ const Dashboard = ({ user, onLogout }) => {
                             onClick={() => openRequestDetails(request)}
                           >
                             Ver Detalhes
+                          </button>
+                          <button 
+                            className="proposal-btn-reject" 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRejectRequest(request.id)
+                            }}
+                            title="Não tenho interesse nesta solicitação"
+                          >
+                            ❌ Não Tenho Interesse
                           </button>
                         </div>
                       </div>

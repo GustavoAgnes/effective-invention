@@ -29,6 +29,9 @@ public class FurnitureRequestController {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private com.woodcraft.repository.RejectedRequestRepository rejectedRequestRepository;
+    
     @PostMapping("/create")
     public ResponseEntity<?> createRequest(@RequestBody FurnitureRequestDTO dto, @RequestParam String email) {
         try {
@@ -71,14 +74,60 @@ public class FurnitureRequestController {
     }
     
     @GetMapping("/active")
-    public ResponseEntity<?> getActiveRequests() {
+    public ResponseEntity<?> getActiveRequests(@RequestParam(required = false) String email) {
         try {
             List<FurnitureRequest> requests = requestRepository.findByStatusOrderByCreatedAtDesc("ACTIVE");
+            
+            // If email is provided (woodworker), filter out rejected requests
+            if (email != null && !email.isEmpty()) {
+                User user = userRepository.findByEmail(email).orElse(null);
+                if (user != null) {
+                    Long woodworkerId = user.getId();
+                    requests = requests.stream()
+                        .filter(request -> !rejectedRequestRepository.existsByWoodworkerIdAndRequestId(woodworkerId, request.getId()))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
             return ResponseEntity.ok(requests);
         } catch (Exception e) {
             logger.error("Error fetching active requests", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/reject")
+    public ResponseEntity<?> rejectRequest(@RequestParam String email, @RequestParam Long requestId) {
+        try {
+            logger.info("Woodworker {} rejecting request {}", email, requestId);
+            
+            User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Check if already rejected
+            if (rejectedRequestRepository.existsByWoodworkerIdAndRequestId(user.getId(), requestId)) {
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Solicitação já estava rejeitada"
+                ));
+            }
+            
+            // Create rejection record
+            com.woodcraft.model.RejectedRequest rejection = new com.woodcraft.model.RejectedRequest(user.getId(), requestId);
+            rejectedRequestRepository.save(rejection);
+            
+            logger.info("Request {} rejected by woodworker {}", requestId, user.getId());
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Solicitação rejeitada com sucesso"
+            ));
+            
+        } catch (Exception e) {
+            logger.error("Error rejecting request", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("success", false, "error", e.getMessage()));
         }
     }
     
