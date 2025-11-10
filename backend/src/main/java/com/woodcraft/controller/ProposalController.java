@@ -126,10 +126,13 @@ public class ProposalController {
             Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new RuntimeException("Proposal not found"));
             
-            proposal.setStatus("REJECTED");
-            proposalRepository.save(proposal);
+            logger.info("Rejecting proposal {} - Current status: {}, Woodworker: {}", 
+                proposalId, proposal.getStatus(), proposal.getWoodworkerId());
             
-            logger.info("Proposal {} rejected", proposalId);
+            proposal.setStatus("REJECTED");
+            Proposal saved = proposalRepository.save(proposal);
+            
+            logger.info("Proposal {} rejected successfully - New status: {}", proposalId, saved.getStatus());
             
             return ResponseEntity.ok(Map.of(
                 "success", true,

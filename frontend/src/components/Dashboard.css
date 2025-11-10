@@ -2531,3 +2531,28 @@ itional dynamic background elements for specific cards */
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
+
+/* Refresh Button */
+.refresh-btn {
+  margin-top: 1.5rem;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #7cb342 0%, #689f38 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(124, 179, 66, 0.3);
+  font-size: 1rem;
+}
+
+.refresh-btn:hover {
+  background: linear-gradient(135deg, #689f38 0%, #558b2f 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(124, 179, 66, 0.4);
+}
+
+.refresh-btn:active {
+  transform: translateY(0);
+}

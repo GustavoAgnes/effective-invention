@@ -162,6 +162,17 @@ const Dashboard = ({ user, onLogout }) => {
     }
   }, [userType])
 
+  // Auto-refresh proposals every 30 seconds for woodworkers
+  useEffect(() => {
+    if (userType === 'woodworker') {
+      const interval = setInterval(() => {
+        loadWoodworkerProposals()
+      }, 30000) // 30 seconds
+      
+      return () => clearInterval(interval)
+    }
+  }, [userType])
+
   // Open request details modal
   const openRequestDetails = async (request) => {
     setSelectedRequest(request)
@@ -256,7 +267,11 @@ const Dashboard = ({ user, onLogout }) => {
       const response = await axios.put(`http://localhost:8080/api/proposals/${proposalId}/reject`)
       if (response.data.success) {
         alert('Proposta rejeitada')
-        openRequestDetails(selectedRequest) // Reload proposals
+        // Reload proposals in modal
+        if (selectedRequest) {
+          const proposalsResponse = await axios.get(`http://localhost:8080/api/proposals/by-request/${selectedRequest.id}`)
+          setRequestProposals(proposalsResponse.data)
+        }
       }
     } catch (error) {
       console.error('Error rejecting proposal:', error)
@@ -698,6 +713,16 @@ const Dashboard = ({ user, onLogout }) => {
               <div className="hero-content">
                 <h2>Encontre Novos Clientes</h2>
                 <p>Acesse solicitações de clientes e envie suas propostas com orçamentos e projetos</p>
+                <button 
+                  className="refresh-btn" 
+                  onClick={() => {
+                    loadActiveRequests()
+                    loadWoodworkerProposals()
+                  }}
+                  title="Atualizar dados"
+                >
+                  🔄 Atualizar
+                </button>
               </div>
             </div>
 
