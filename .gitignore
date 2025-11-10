@@ -1,0 +1,67 @@
+# Guides and documentation (excluding README.md)
+*-setup*.md
+*-guide*.md
+*-instructions*.md
+*-final*.md
+HUGGINGFACE_SETUP.md
+configuracao-final-oauth.md
+criar-novo-oauth-client.md
+google-cloud-console-setup.md
+google-oauth-localhost-fix.md
+google-oauth-update-instructions.md
+oauth-setup-guide.md
+
+# Maven
+apache-maven-3.9.5/
+maven.zip
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+dist-ssr/
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+build/
+*.class
+*.jar
+*.war
+*.ear
+
+# Kiro specs (optional - remove if you want to include them)
+.kiro/specs/
+
+# OS
+Thumbs.db

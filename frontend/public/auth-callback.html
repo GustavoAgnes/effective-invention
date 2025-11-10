@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autenticação - Comunidade WoodCraft</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #114e3b 0%, #407e63 50%, #7aa591 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .message {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🌲</div>
+        <div class="message">Processando autenticação...</div>
+        <div class="spinner"></div>
+        <div id="error-message" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Debug: Log the current URL
+        console.log('Callback URL:', window.location.href);
+        console.log('Search params:', window.location.search);
+        
+        // Extract parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const error = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
+
+        console.log('OAuth params:', { code, state, error, errorDescription });
+
+        if (error) {
+            document.querySelector('.message').textContent = 'Erro na autenticação';
+            document.querySelector('.spinner').style.display = 'none';
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = errorDescription || error;
+            errorDiv.style.display = 'block';
+            
+            // Send error to parent window
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'OAUTH_ERROR',
+                    message: errorDescription || error
+                }, window.location.origin);
+            }
+            
+            setTimeout(() => window.close(), 3000);
+            return;
+        }
+
+        if (code) {
+            // Exchange code for token
+            fetch('http://localhost:8080/api/auth/oauth2/callback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: code,
+                    state: state,
+                    redirectUri: window.location.origin + '/auth-callback.html'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.message || 'Erro na autenticação');
+                }
+                
+                document.querySelector('.message').textContent = 'Autenticação realizada com sucesso!';
+                document.querySelector('.spinner').style.display = 'none';
+                
+                // Send success to parent window
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'OAUTH_SUCCESS',
+                        token: data.token,
+                        user: data.user
+                    }, window.location.origin);
+                }
+                
+                setTimeout(() => window.close(), 1000);
+            })
+            .catch(error => {
+                document.querySelector('.message').textContent = 'Erro na autenticação';
+                document.querySelector('.spinner').style.display = 'none';
+                const errorDiv = document.getElementById('error-message');
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                
+                // Send error to parent window
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'OAUTH_ERROR',
+                        message: error.message
+                    }, window.location.origin);
+                }
+                
+                setTimeout(() => window.close(), 3000);
+            });
+        } else {
+            document.querySelector('.message').textContent = 'Parâmetros de autenticação inválidos';
+            document.querySelector('.spinner').style.display = 'none';
+            
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'OAUTH_ERROR',
+                    message: 'Parâmetros de autenticação inválidos'
+                }, window.location.origin);
+            }
+            
+            setTimeout(() => window.close(), 3000);
+        }
+    </script>
+</body>
+</html>

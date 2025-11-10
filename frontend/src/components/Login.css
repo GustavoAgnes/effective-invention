@@ -1,0 +1,523 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #7cb342 0%, #9ccc65 50%, #aed581 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    /* Pine tree 1 - Left side */
+    conic-gradient(from 180deg at 12% 100%, 
+      transparent 0deg, 
+      transparent 70deg,
+      rgba(45, 80, 22, 0.25) 70deg,
+      rgba(45, 80, 22, 0.25) 110deg,
+      transparent 110deg
+    ),
+    conic-gradient(from 180deg at 12% 85%, 
+      transparent 0deg, 
+      transparent 65deg,
+      rgba(45, 80, 22, 0.25) 65deg,
+      rgba(45, 80, 22, 0.25) 115deg,
+      transparent 115deg
+    ),
+    conic-gradient(from 180deg at 12% 70%, 
+      transparent 0deg, 
+      transparent 60deg,
+      rgba(45, 80, 22, 0.25) 60deg,
+      rgba(45, 80, 22, 0.25) 120deg,
+      transparent 120deg
+    ),
+    /* Tree trunk 1 */
+    linear-gradient(to bottom, 
+      transparent 0%, 
+      transparent 70%,
+      rgba(61, 79, 23, 0.3) 70%,
+      rgba(61, 79, 23, 0.3) 100%
+    ) 11% 0 / 2% 100%,
+    
+    /* Pine tree 2 - Right side */
+    conic-gradient(from 180deg at 88% 100%, 
+      transparent 0deg, 
+      transparent 68deg,
+      rgba(45, 80, 22, 0.22) 68deg,
+      rgba(45, 80, 22, 0.22) 112deg,
+      transparent 112deg
+    ),
+    conic-gradient(from 180deg at 88% 82%, 
+      transparent 0deg, 
+      transparent 63deg,
+      rgba(45, 80, 22, 0.22) 63deg,
+      rgba(45, 80, 22, 0.22) 117deg,
+      transparent 117deg
+    ),
+    conic-gradient(from 180deg at 88% 64%, 
+      transparent 0deg, 
+      transparent 58deg,
+      rgba(45, 80, 22, 0.22) 58deg,
+      rgba(45, 80, 22, 0.22) 122deg,
+      transparent 122deg
+    ),
+    /* Tree trunk 2 */
+    linear-gradient(to bottom, 
+      transparent 0%, 
+      transparent 64%,
+      rgba(61, 79, 23, 0.28) 64%,
+      rgba(61, 79, 23, 0.28) 100%
+    ) 87.5% 0 / 1.5% 100%,
+    
+    /* Pine tree 3 - Left bottom */
+    conic-gradient(from 180deg at 8% 100%, 
+      transparent 0deg, 
+      transparent 72deg,
+      rgba(45, 80, 22, 0.2) 72deg,
+      rgba(45, 80, 22, 0.2) 108deg,
+      transparent 108deg
+    ),
+    conic-gradient(from 180deg at 8% 88%, 
+      transparent 0deg, 
+      transparent 67deg,
+      rgba(45, 80, 22, 0.2) 67deg,
+      rgba(45, 80, 22, 0.2) 113deg,
+      transparent 113deg
+    ),
+    /* Tree trunk 3 */
+    linear-gradient(to bottom, 
+      transparent 0%, 
+      transparent 88%,
+      rgba(61, 79, 23, 0.25) 88%,
+      rgba(61, 79, 23, 0.25) 100%
+    ) 7.5% 0 / 1.2% 100%,
+    
+    /* Pine tree 4 - Right bottom */
+    conic-gradient(from 180deg at 92% 100%, 
+      transparent 0deg, 
+      transparent 70deg,
+      rgba(45, 80, 22, 0.23) 70deg,
+      rgba(45, 80, 22, 0.23) 110deg,
+      transparent 110deg
+    ),
+    conic-gradient(from 180deg at 92% 90%, 
+      transparent 0deg, 
+      transparent 65deg,
+      rgba(45, 80, 22, 0.23) 65deg,
+      rgba(45, 80, 22, 0.23) 115deg,
+      transparent 115deg
+    ),
+    /* Tree trunk 4 */
+    linear-gradient(to bottom, 
+      transparent 0%, 
+      transparent 90%,
+      rgba(61, 79, 23, 0.28) 90%,
+      rgba(61, 79, 23, 0.28) 100%
+    ) 91.5% 0 / 1.3% 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    /* Floating sawdust particles */
+    radial-gradient(circle 2px at 25% 30%, rgba(205, 133, 63, 0.2) 0%, transparent 50%),
+    radial-gradient(circle 1px at 75% 20%, rgba(205, 133, 63, 0.15) 0%, transparent 50%),
+    radial-gradient(circle 3px at 60% 80%, rgba(139, 115, 85, 0.15) 0%, transparent 50%),
+    radial-gradient(circle 2px at 30% 70%, rgba(139, 115, 85, 0.12) 0%, transparent 50%),
+    radial-gradient(circle 1px at 85% 60%, rgba(205, 133, 63, 0.1) 0%, transparent 50%),
+    
+    /* Subtle light rays */
+    linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.03) 50%, transparent 100%);
+  animation: floatingParticles 25s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes floatingParticles {
+  0%, 100% { 
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.4;
+  }
+  25% {
+    transform: translateY(-8px) translateX(3px);
+    opacity: 0.6;
+  }
+  50% { 
+    transform: translateY(-15px) translateX(-2px);
+    opacity: 0.5;
+  }
+  75% {
+    transform: translateY(-5px) translateX(4px);
+    opacity: 0.7;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  padding: 48px 40px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  max-width: 420px;
+  width: 100%;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.logo-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.logo {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.logo-section h1 {
+  color: #2d3748;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.logo-section p {
+  color: #718096;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.message {
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.message.error {
+  background: #fed7d7;
+  color: #c53030;
+  border: 1px solid #fc8181;
+}
+
+.message.success {
+  background: #c6f6d5;
+  color: #2f855a;
+  border: 1px solid #9ae6b4;
+}
+
+.message.info {
+  background: #bee3f8;
+  color: #2c5282;
+  border: 1px solid #90cdf4;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #2d3748;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.025em;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #7cb342;
+  box-shadow: 0 0 0 3px rgba(124, 179, 66, 0.15);
+  background: rgba(255, 255, 255, 1);
+}
+
+.form-group input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #718096;
+  font-weight: 500;
+}
+
+.checkbox-container input {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.forgot-password {
+  color: #7cb342;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.forgot-password:hover {
+  color: #689f38;
+  text-decoration: underline;
+}
+
+.login-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #7cb342 0%, #689f38 100%);
+  color: white;
+  border: none;
+  padding: 18px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.025em;
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(124, 179, 66, 0.4);
+  background: linear-gradient(135deg, #689f38 0%, #558b2f 100%);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.divider {
+  text-align: center;
+  margin: 28px 0;
+  position: relative;
+  color: #a0aec0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider span {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0 16px;
+  position: relative;
+}
+
+.signup-section {
+  text-align: center;
+}
+
+.signup-section p {
+  color: #718096;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.signup-btn {
+  color: #7cb342;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 12px 24px;
+  border: 2px solid #7cb342;
+  border-radius: 12px;
+  display: inline-block;
+  transition: all 0.3s ease;
+  letter-spacing: 0.025em;
+}
+
+.signup-btn:hover {
+  background: #7cb342;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 179, 66, 0.3);
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 20px;
+  }
+  
+  .form-options {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+}/* SS
+O Section Styles */
+.sso-section {
+  margin: 1.5rem 0;
+}
+
+.sso-text {
+  text-align: center;
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.sso-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.sso-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #2d3748;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.025em;
+}
+
+.sso-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sso-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sso-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Individual SSO Button Styles */
+.google-btn {
+  border-color: #e2e8f0;
+  min-width: 200px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.google-btn:hover:not(:disabled) {
+  border-color: #cbd5e0;
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+
+
+/* Responsive design for SSO buttons */
+@media (max-width: 480px) {
+  .sso-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .sso-btn {
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .sso-icon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Loading state for SSO buttons */
+.sso-btn:disabled .sso-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
