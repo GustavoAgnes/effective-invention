@@ -24,6 +24,7 @@ const Dashboard = ({ user, onLogout }) => {
   // Requests state
   const [myRequests, setMyRequests] = useState([])
   const [activeRequests, setActiveRequests] = useState([])
+  const [rejectedRequests, setRejectedRequests] = useState([])
   const [loadingRequests, setLoadingRequests] = useState(false)
   
   // Woodworker proposals by status
@@ -118,21 +119,32 @@ const Dashboard = ({ user, onLogout }) => {
     }
   }
 
+  // Load rejected requests (woodworker)
+  const loadRejectedRequests = async () => {
+    try {
+      const response = await axios.get(`http://localhost:8080/api/requests/rejected?email=${user.email}`)
+      setRejectedRequests(response.data)
+    } catch (error) {
+      console.error('Error loading rejected requests:', error)
+    }
+  }
+
   // Reject request (woodworker doesn't want to see this request)
   const handleRejectRequest = async (requestId) => {
-    if (!confirm('Deseja ocultar esta solicitação? Ela não aparecerá mais na sua lista.')) return
+    if (!confirm('Deseja rejeitar esta solicitação? Ela será movida para "Solicitações Rejeitadas".')) return
     
     try {
       const response = await axios.post(
         `http://localhost:8080/api/requests/reject?email=${user.email}&requestId=${requestId}`
       )
       if (response.data.success) {
-        alert('✅ Solicitação ocultada com sucesso!')
-        loadActiveRequests() // Reload list
+        alert('✅ Solicitação rejeitada!')
+        loadActiveRequests() // Reload active list
+        loadRejectedRequests() // Reload rejected list
       }
     } catch (error) {
       console.error('Error rejecting request:', error)
-      alert('❌ Erro ao ocultar solicitação.')
+      alert('❌ Erro ao rejeitar solicitação.')
     }
   }
 
@@ -159,6 +171,7 @@ const Dashboard = ({ user, onLogout }) => {
     } else {
       loadActiveRequests()
       loadWoodworkerProposals()
+      loadRejectedRequests()
     }
   }, [userType])
 
@@ -167,6 +180,7 @@ const Dashboard = ({ user, onLogout }) => {
     if (userType === 'woodworker') {
       const interval = setInterval(() => {
         loadWoodworkerProposals()
+        loadRejectedRequests()
       }, 30000) // 30 seconds
       
       return () => clearInterval(interval)
@@ -718,6 +732,7 @@ const Dashboard = ({ user, onLogout }) => {
                   onClick={() => {
                     loadActiveRequests()
                     loadWoodworkerProposals()
+                    loadRejectedRequests()
                   }}
                   title="Atualizar dados"
                 >
@@ -777,9 +792,9 @@ const Dashboard = ({ user, onLogout }) => {
                               e.stopPropagation()
                               handleRejectRequest(request.id)
                             }}
-                            title="Não tenho interesse nesta solicitação"
+                            title="Rejeitar esta solicitação e movê-la para Solicitações Rejeitadas"
                           >
-                            ❌ Não Tenho Interesse
+                            ❌ Rejeitar Solicitação
                           </button>
                         </div>
                       </div>
@@ -815,18 +830,42 @@ const Dashboard = ({ user, onLogout }) => {
 
               <div className="card">
                 <div className="card-header">
-                  <h3>❌ Propostas Rejeitadas</h3>
+                  <h3>❌ Propostas Rejeitadas pelo Cliente</h3>
                   <span className="card-count">{rejectedProposals.length}</span>
                 </div>
                 <div className="card-content">
                   {rejectedProposals.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#718096' }}>Nenhuma proposta rejeitada.</p>
+                    <p style={{ textAlign: 'center', color: '#718096' }}>Nenhuma proposta rejeitada pelo cliente.</p>
                   ) : (
                     rejectedProposals.slice(0, 2).map((proposal) => (
                       <div key={proposal.id} className="proposal-item rejected">
                         <div className="proposal-info">
                           <span className="proposal-title">Proposta de {proposal.price}</span>
                           <span className="proposal-meta">{formatDate(proposal.createdAt)}</span>
+                        </div>
+                        <span className="project-status cancelled">Rejeitada</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-header">
+                  <h3>🚫 Solicitações Rejeitadas por Mim</h3>
+                  <span className="card-count">{rejectedRequests.length}</span>
+                </div>
+                <div className="card-content">
+                  {rejectedRequests.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#718096' }}>Nenhuma solicitação rejeitada.</p>
+                  ) : (
+                    rejectedRequests.slice(0, 2).map((request) => (
+                      <div key={request.id} className="request-item rejected">
+                        <div className="request-info">
+                          <span className="request-title">
+                            {translateFurnitureType(request.furnitureType)} em {translateMaterial(request.material)}
+                          </span>
+                          <span className="request-meta">{formatDate(request.createdAt)}</span>
                         </div>
                         <span className="project-status cancelled">Rejeitada</span>
                       </div>
@@ -852,6 +891,10 @@ const Dashboard = ({ user, onLogout }) => {
                     <div className="stat">
                       <span className="stat-number">{rejectedProposals.length}</span>
                       <span className="stat-label">Propostas Rejeitadas</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-number">{rejectedRequests.length}</span>
+                      <span className="stat-label">Solicitações Rejeitadas</span>
                     </div>
                   </div>
                 </div>
