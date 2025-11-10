@@ -27,6 +27,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/furniture/**").permitAll()
                 .requestMatchers("/api/requests/**").permitAll()
+                .requestMatchers("/api/proposals/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             )

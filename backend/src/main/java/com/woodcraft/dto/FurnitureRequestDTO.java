@@ -9,6 +9,7 @@ public class FurnitureRequestDTO {
     private String dimensions;
     private String description;
     private String budget;
+    private String aiPreviewImage;
     
     // Constructors
     public FurnitureRequestDTO() {}
@@ -76,5 +77,13 @@ public class FurnitureRequestDTO {
     
     public void setBudget(String budget) {
         this.budget = budget;
+    }
+    
+    public String getAiPreviewImage() {
+        return aiPreviewImage;
+    }
+    
+    public void setAiPreviewImage(String aiPreviewImage) {
+        this.aiPreviewImage = aiPreviewImage;
     }
 }

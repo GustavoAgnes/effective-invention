@@ -1,10 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './Dashboard.css'
+
+// Currency formatting functions
+const formatCurrency = (value) => {
+  if (!value) return ''
+  const numericValue = value.replace(/\D/g, '')
+  const number = parseFloat(numericValue) / 100
+  return number.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+const handleCurrencyInput = (value) => {
+  const numericValue = value.replace(/\D/g, '')
+  if (!numericValue) return ''
+  const number = parseFloat(numericValue) / 100
+  return number.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
 
 const Dashboard = ({ user, onLogout }) => {
   const [userType, setUserType] = useState('customer') // 'customer' or 'woodworker'
   const [showRequestForm, setShowRequestForm] = useState(false)
+  
+  // Requests state
+  const [myRequests, setMyRequests] = useState([])
+  const [activeRequests, setActiveRequests] = useState([])
+  const [loadingRequests, setLoadingRequests] = useState(false)
+  
+  // Woodworker proposals by status
+  const [pendingProposals, setPendingProposals] = useState([])
+  const [acceptedProposals, setAcceptedProposals] = useState([])
+  const [rejectedProposals, setRejectedProposals] = useState([])
+  
+  // Modal state
+  const [showRequestDetails, setShowRequestDetails] = useState(false)
+  const [selectedRequest, setSelectedRequest] = useState(null)
+  const [requestProposals, setRequestProposals] = useState([])
+  const [loadingProposals, setLoadingProposals] = useState(false)
+  
+  // Proposal modal state
+  const [showProposalModal, setShowProposalModal] = useState(false)
+  const [proposalPrice, setProposalPrice] = useState('')
+  const [proposalMessage, setProposalMessage] = useState('')
+  const [submittingProposal, setSubmittingProposal] = useState(false)
   
   // Form state for furniture preview
   const [furnitureType, setFurnitureType] = useState('mesa')
@@ -54,6 +91,161 @@ const Dashboard = ({ user, onLogout }) => {
     }
   }
 
+  // Load requests
+  const loadMyRequests = async () => {
+    setLoadingRequests(true)
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/requests/my-requests?email=${user.email}`
+      )
+      setMyRequests(response.data)
+    } catch (error) {
+      console.error('Error loading my requests:', error)
+    } finally {
+      setLoadingRequests(false)
+    }
+  }
+
+  const loadActiveRequests = async () => {
+    setLoadingRequests(true)
+    try {
+      const response = await axios.get('http://localhost:8080/api/requests/active')
+      setActiveRequests(response.data)
+    } catch (error) {
+      console.error('Error loading active requests:', error)
+    } finally {
+      setLoadingRequests(false)
+    }
+  }
+
+  // Load woodworker proposals by status
+  const loadWoodworkerProposals = async () => {
+    try {
+      const [pending, accepted, rejected] = await Promise.all([
+        axios.get(`http://localhost:8080/api/proposals/my-proposals?email=${user.email}&status=PENDING`),
+        axios.get(`http://localhost:8080/api/proposals/my-proposals?email=${user.email}&status=ACCEPTED`),
+        axios.get(`http://localhost:8080/api/proposals/my-proposals?email=${user.email}&status=REJECTED`)
+      ])
+      setPendingProposals(pending.data)
+      setAcceptedProposals(accepted.data)
+      setRejectedProposals(rejected.data)
+    } catch (error) {
+      console.error('Error loading woodworker proposals:', error)
+    }
+  }
+
+  // Load requests when component mounts or userType changes
+  useEffect(() => {
+    if (userType === 'customer') {
+      loadMyRequests()
+    } else {
+      loadActiveRequests()
+      loadWoodworkerProposals()
+    }
+  }, [userType])
+
+  // Open request details modal
+  const openRequestDetails = async (request) => {
+    setSelectedRequest(request)
+    setShowRequestDetails(true)
+    setLoadingProposals(true)
+    
+    try {
+      const response = await axios.get(`http://localhost:8080/api/proposals/by-request/${request.id}`)
+      setRequestProposals(response.data)
+    } catch (error) {
+      console.error('Error loading proposals:', error)
+      setRequestProposals([])
+    } finally {
+      setLoadingProposals(false)
+    }
+  }
+
+  // Close request details modal
+  const closeRequestDetails = () => {
+    setShowRequestDetails(false)
+    setSelectedRequest(null)
+    setRequestProposals([])
+  }
+
+  // Open proposal modal
+  const openProposalModal = (request) => {
+    setSelectedRequest(request)
+    setShowProposalModal(true)
+    setProposalPrice('')
+    setProposalMessage('')
+  }
+
+  // Close proposal modal
+  const closeProposalModal = () => {
+    setShowProposalModal(false)
+    setSelectedRequest(null)
+    setProposalPrice('')
+    setProposalMessage('')
+  }
+
+  // Submit proposal
+  const handleSubmitProposal = async (e) => {
+    e.preventDefault()
+    setSubmittingProposal(true)
+    
+    try {
+      const response = await axios.post(
+        `http://localhost:8080/api/proposals/create?email=${user.email}`,
+        {
+          requestId: selectedRequest.id,
+          price: proposalPrice,
+          message: proposalMessage,
+          imageUrls: null
+        }
+      )
+      
+      if (response.data.success) {
+        alert('✅ Proposta enviada com sucesso!')
+        closeProposalModal()
+        loadActiveRequests()
+        loadWoodworkerProposals()
+      }
+    } catch (error) {
+      console.error('Error submitting proposal:', error)
+      alert('❌ Erro ao enviar proposta. Tente novamente.')
+    } finally {
+      setSubmittingProposal(false)
+    }
+  }
+
+  // Accept proposal
+  const handleAcceptProposal = async (proposalId) => {
+    if (!confirm('Deseja aceitar esta proposta?')) return
+    
+    try {
+      const response = await axios.put(`http://localhost:8080/api/proposals/${proposalId}/accept`)
+      if (response.data.success) {
+        alert('✅ Proposta aceita!')
+        openRequestDetails(selectedRequest) // Reload proposals
+      }
+    } catch (error) {
+      console.error('Error accepting proposal:', error)
+      alert('❌ Erro ao aceitar proposta.')
+    }
+  }
+
+  // Reject proposal
+  const handleRejectProposal = async (proposalId) => {
+    if (!confirm('Deseja rejeitar esta proposta?')) return
+    
+    try {
+      const response = await axios.put(`http://localhost:8080/api/proposals/${proposalId}/reject`)
+      if (response.data.success) {
+        alert('Proposta rejeitada')
+        openRequestDetails(selectedRequest) // Reload proposals
+      }
+    } catch (error) {
+      console.error('Error rejecting proposal:', error)
+      alert('❌ Erro ao rejeitar proposta.')
+    }
+  }
+
   // Submit furniture request
   const handleSubmitRequest = async (e) => {
     e.preventDefault()
@@ -69,7 +261,8 @@ const Dashboard = ({ user, onLogout }) => {
           thickness,
           dimensions,
           description,
-          budget
+          budget,
+          aiPreviewImage: aiPreview.imageUrl || null
         }
       )
       
@@ -86,11 +279,51 @@ const Dashboard = ({ user, onLogout }) => {
         setDescription('')
         setBudget('')
         setAiPreview({ loading: false, imageUrl: null, error: null, showAI: false })
+        // Reload requests
+        loadMyRequests()
       }
     } catch (error) {
       console.error('Error submitting request:', error)
       alert('❌ Erro ao publicar solicitação. Tente novamente.')
     }
+  }
+
+  // Format date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+    
+    if (diffMins < 60) return `Há ${diffMins} minuto${diffMins !== 1 ? 's' : ''}`
+    if (diffHours < 24) return `Há ${diffHours} hora${diffHours !== 1 ? 's' : ''}`
+    if (diffDays < 7) return `Há ${diffDays} dia${diffDays !== 1 ? 's' : ''}`
+    return date.toLocaleDateString('pt-BR')
+  }
+
+  // Translate furniture type
+  const translateFurnitureType = (type) => {
+    const translations = {
+      'mesa': 'Mesa',
+      'cadeira': 'Cadeira',
+      'estante': 'Estante',
+      'armario': 'Armário',
+      'rack': 'Rack para TV'
+    }
+    return translations[type] || type
+  }
+
+  // Translate material
+  const translateMaterial = (mat) => {
+    const translations = {
+      'madeira': 'Madeira Natural',
+      'mdf': 'MDF',
+      'mdp': 'MDP',
+      'compensado': 'Compensado'
+    }
+    return translations[mat] || mat
   }
 
   // Material colors
@@ -256,7 +489,7 @@ const Dashboard = ({ user, onLogout }) => {
                           type="text" 
                           placeholder="R$ 0,00"
                           value={budget}
-                          onChange={(e) => setBudget(e.target.value)}
+                          onChange={(e) => setBudget(handleCurrencyInput(e.target.value))}
                         />
                       </div>
 
@@ -388,64 +621,37 @@ const Dashboard = ({ user, onLogout }) => {
                 <div className="card">
                   <div className="card-header">
                     <h3>📋 Minhas Solicitações</h3>
-                    <span className="card-count">3</span>
+                    <span className="card-count">{myRequests.length}</span>
                   </div>
                   <div className="card-content">
-                    <div className="request-item">
-                      <div className="request-info">
-                        <span className="request-title">Mesa de Jantar em Carvalho</span>
-                        <span className="request-meta">5 propostas • Há 2 dias</span>
-                      </div>
-                      <span className="project-status in-progress">Ativo</span>
-                    </div>
-                    <div className="request-item">
-                      <div className="request-info">
-                        <span className="request-title">Estante de MDF Branco</span>
-                        <span className="request-meta">12 propostas • Há 1 semana</span>
-                      </div>
-                      <span className="project-status completed">Concluído</span>
-                    </div>
-                    <div className="request-item">
-                      <div className="request-info">
-                        <span className="request-title">Rack para TV</span>
-                        <span className="request-meta">0 propostas • Há 3 horas</span>
-                      </div>
-                      <span className="project-status planning">Novo</span>
-                    </div>
+                    {loadingRequests ? (
+                      <p style={{ textAlign: 'center', color: '#718096' }}>Carregando...</p>
+                    ) : myRequests.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: '#718096' }}>
+                        Nenhuma solicitação ainda. Clique em "+ Nova Solicitação" para começar!
+                      </p>
+                    ) : (
+                      myRequests.slice(0, 3).map((request) => (
+                        <div 
+                          key={request.id} 
+                          className="request-item clickable"
+                          onClick={() => openRequestDetails(request)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="request-info">
+                            <span className="request-title">
+                              {translateFurnitureType(request.furnitureType)} em {translateMaterial(request.material)}
+                            </span>
+                            <span className="request-meta">{formatDate(request.createdAt)}</span>
+                          </div>
+                          <span className="project-status in-progress">{request.status === 'ACTIVE' ? 'Ativo' : request.status}</span>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <button className="card-action">Ver Todas</button>
-                </div>
-
-                <div className="card">
-                  <div className="card-header">
-                    <h3>💬 Propostas Recebidas</h3>
-                    <span className="card-count">17</span>
-                  </div>
-                  <div className="card-content">
-                    <div className="proposal-item">
-                      <div className="proposal-header">
-                        <span className="woodworker-name">João Silva</span>
-                        <span className="proposal-price">R$ 2.500</span>
-                      </div>
-                      <p className="proposal-text">Mesa de Jantar em Carvalho</p>
-                      <div className="proposal-meta">
-                        <span>⭐ 4.8 (23 avaliações)</span>
-                        <span>📍 São Paulo, SP</span>
-                      </div>
-                    </div>
-                    <div className="proposal-item">
-                      <div className="proposal-header">
-                        <span className="woodworker-name">Maria Santos</span>
-                        <span className="proposal-price">R$ 2.200</span>
-                      </div>
-                      <p className="proposal-text">Mesa de Jantar em Carvalho</p>
-                      <div className="proposal-meta">
-                        <span>⭐ 5.0 (45 avaliações)</span>
-                        <span>📍 Rio de Janeiro, RJ</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button className="card-action">Ver Todas as Propostas</button>
+                  {myRequests.length > 3 && (
+                    <button className="card-action">Ver Todas ({myRequests.length})</button>
+                  )}
                 </div>
 
                 <div className="card">
@@ -455,16 +661,12 @@ const Dashboard = ({ user, onLogout }) => {
                   <div className="card-content">
                     <div className="stats-grid">
                       <div className="stat">
-                        <span className="stat-number">3</span>
+                        <span className="stat-number">{myRequests.filter(r => r.status === 'ACTIVE').length}</span>
                         <span className="stat-label">Solicitações Ativas</span>
                       </div>
                       <div className="stat">
-                        <span className="stat-number">17</span>
-                        <span className="stat-label">Propostas Recebidas</span>
-                      </div>
-                      <div className="stat">
-                        <span className="stat-number">2</span>
-                        <span className="stat-label">Projetos Concluídos</span>
+                        <span className="stat-number">{myRequests.length}</span>
+                        <span className="stat-label">Total de Solicitações</span>
                       </div>
                     </div>
                   </div>
@@ -485,96 +687,114 @@ const Dashboard = ({ user, onLogout }) => {
               <div className="card">
                 <div className="card-header">
                   <h3>🔔 Novas Solicitações</h3>
-                  <span className="card-count">24</span>
+                  <span className="card-count">{activeRequests.length}</span>
                 </div>
                 <div className="card-content">
-                  <div className="customer-request">
-                    <div className="request-header">
-                      <span className="request-title">Mesa de Jantar em Carvalho</span>
-                      <span className="request-time">Há 3 horas</span>
-                    </div>
-                    <p className="request-description">
-                      Preciso de uma mesa de jantar para 6 pessoas em madeira de carvalho natural. 
-                      Dimensões aproximadas: 1.8m x 1m.
+                  {loadingRequests ? (
+                    <p style={{ textAlign: 'center', color: '#718096' }}>Carregando...</p>
+                  ) : activeRequests.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#718096' }}>
+                      Nenhuma solicitação ativa no momento. Volte mais tarde!
                     </p>
-                    <div className="request-specs">
-                      <span className="spec-tag">🪵 Madeira Natural</span>
-                      <span className="spec-tag">📏 1.8m x 1m</span>
-                      <span className="spec-tag">💰 R$ 2.000 - 3.000</span>
-                    </div>
-                    <button className="proposal-btn">Enviar Proposta</button>
-                  </div>
-                  <div className="customer-request">
-                    <div className="request-header">
-                      <span className="request-title">Estante de MDF Branco</span>
-                      <span className="request-time">Há 5 horas</span>
-                    </div>
-                    <p className="request-description">
-                      Estante para livros em MDF branco, 5 prateleiras, 2m de altura.
-                    </p>
-                    <div className="request-specs">
-                      <span className="spec-tag">🎨 MDF Branco</span>
-                      <span className="spec-tag">📏 2m altura</span>
-                      <span className="spec-tag">💰 Orçamento aberto</span>
-                    </div>
-                    <button className="proposal-btn">Enviar Proposta</button>
-                  </div>
+                  ) : (
+                    activeRequests.slice(0, 2).map((request) => (
+                      <div key={request.id} className="customer-request">
+                        <div 
+                          className="request-header clickable" 
+                          onClick={() => openRequestDetails(request)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <span className="request-title">
+                            {translateFurnitureType(request.furnitureType)} em {translateMaterial(request.material)}
+                          </span>
+                          <span className="request-time">{formatDate(request.createdAt)}</span>
+                        </div>
+                        {request.description && (
+                          <p className="request-description">{request.description}</p>
+                        )}
+                        <div className="request-specs">
+                          <span className="spec-tag">🪵 {translateMaterial(request.material)}</span>
+                          {request.dimensions && <span className="spec-tag">📏 {request.dimensions}</span>}
+                          {request.budget && <span className="spec-tag">💰 {request.budget}</span>}
+                          {!request.budget && <span className="spec-tag">💰 Orçamento aberto</span>}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button className="proposal-btn" onClick={() => openProposalModal(request)}>
+                            Enviar Proposta
+                          </button>
+                          <button 
+                            className="proposal-btn-secondary" 
+                            onClick={() => openRequestDetails(request)}
+                          >
+                            Ver Detalhes
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <button className="card-action">Ver Todas as Solicitações</button>
+                {activeRequests.length > 2 && (
+                  <button className="card-action">Ver Todas as Solicitações ({activeRequests.length})</button>
+                )}
               </div>
 
               <div className="card">
                 <div className="card-header">
-                  <h3>📤 Minhas Propostas</h3>
-                  <span className="card-count">8</span>
+                  <h3>✅ Propostas Aceitas</h3>
+                  <span className="card-count">{acceptedProposals.length}</span>
                 </div>
                 <div className="card-content">
-                  <div className="my-proposal">
-                    <div className="proposal-info">
-                      <span className="proposal-title">Mesa de Centro em Pinus</span>
-                      <span className="proposal-value">R$ 1.200</span>
-                    </div>
-                    <span className="project-status planning">Aguardando</span>
-                  </div>
-                  <div className="my-proposal">
-                    <div className="proposal-info">
-                      <span className="proposal-title">Rack para TV em MDF</span>
-                      <span className="proposal-value">R$ 800</span>
-                    </div>
-                    <span className="project-status completed">Aceita</span>
-                  </div>
-                  <div className="my-proposal">
-                    <div className="proposal-info">
-                      <span className="proposal-title">Cama de Casal em Cedro</span>
-                      <span className="proposal-value">R$ 3.500</span>
-                    </div>
-                    <span className="project-status in-progress">Em Negociação</span>
-                  </div>
+                  {acceptedProposals.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#718096' }}>Nenhuma proposta aceita ainda.</p>
+                  ) : (
+                    acceptedProposals.slice(0, 2).map((proposal) => (
+                      <div key={proposal.id} className="proposal-item accepted">
+                        <div className="proposal-info">
+                          <span className="proposal-title">Proposta de {proposal.price}</span>
+                          <span className="proposal-meta">{formatDate(proposal.createdAt)}</span>
+                        </div>
+                        <span className="project-status completed">Aceita</span>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <button className="card-action">Ver Todas</button>
               </div>
 
               <div className="card">
                 <div className="card-header">
-                  <h3>📊 Meu Desempenho</h3>
+                  <h3>❌ Propostas Rejeitadas</h3>
+                  <span className="card-count">{rejectedProposals.length}</span>
+                </div>
+                <div className="card-content">
+                  {rejectedProposals.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#718096' }}>Nenhuma proposta rejeitada.</p>
+                  ) : (
+                    rejectedProposals.slice(0, 2).map((proposal) => (
+                      <div key={proposal.id} className="proposal-item rejected">
+                        <div className="proposal-info">
+                          <span className="proposal-title">Proposta de {proposal.price}</span>
+                          <span className="proposal-meta">{formatDate(proposal.createdAt)}</span>
+                        </div>
+                        <span className="project-status cancelled">Rejeitada</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-header">
+                  <h3>📊 Estatísticas</h3>
                 </div>
                 <div className="card-content">
                   <div className="stats-grid">
                     <div className="stat">
-                      <span className="stat-number">8</span>
-                      <span className="stat-label">Propostas Enviadas</span>
+                      <span className="stat-number">{pendingProposals.length}</span>
+                      <span className="stat-label">Propostas Pendentes</span>
                     </div>
                     <div className="stat">
-                      <span className="stat-number">3</span>
-                      <span className="stat-label">Projetos Ativos</span>
-                    </div>
-                    <div className="stat">
-                      <span className="stat-number">12</span>
-                      <span className="stat-label">Projetos Concluídos</span>
-                    </div>
-                    <div className="stat">
-                      <span className="stat-number">4.9</span>
-                      <span className="stat-label">Avaliação Média</span>
+                      <span className="stat-number">{acceptedProposals.length}</span>
+                      <span className="stat-label">Propostas Aceitas</span>
                     </div>
                   </div>
                 </div>
@@ -583,6 +803,204 @@ const Dashboard = ({ user, onLogout }) => {
           </>
         )}
       </main>
+
+      {/* Request Details Modal */}
+      {showRequestDetails && selectedRequest && (
+        <div className="modal-overlay" onClick={closeRequestDetails}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Detalhes da Solicitação</h2>
+              <button className="modal-close" onClick={closeRequestDetails}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="request-details-section">
+                <h3>📋 Informações do Móvel</h3>
+                <div className="details-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Tipo:</span>
+                    <span className="detail-value">{translateFurnitureType(selectedRequest.furnitureType)}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Material:</span>
+                    <span className="detail-value">{translateMaterial(selectedRequest.material)}</span>
+                  </div>
+                  {selectedRequest.woodType && (
+                    <div className="detail-item">
+                      <span className="detail-label">Tipo de Madeira:</span>
+                      <span className="detail-value">{selectedRequest.woodType}</span>
+                    </div>
+                  )}
+                  {selectedRequest.thickness && (
+                    <div className="detail-item">
+                      <span className="detail-label">Espessura:</span>
+                      <span className="detail-value">{selectedRequest.thickness}</span>
+                    </div>
+                  )}
+                  {selectedRequest.dimensions && (
+                    <div className="detail-item">
+                      <span className="detail-label">Dimensões:</span>
+                      <span className="detail-value">{selectedRequest.dimensions}</span>
+                    </div>
+                  )}
+                  {selectedRequest.budget && (
+                    <div className="detail-item">
+                      <span className="detail-label">Orçamento:</span>
+                      <span className="detail-value">{selectedRequest.budget}</span>
+                    </div>
+                  )}
+                  <div className="detail-item">
+                    <span className="detail-label">Status:</span>
+                    <span className="detail-value">
+                      <span className="project-status in-progress">
+                        {selectedRequest.status === 'ACTIVE' ? 'Ativo' : selectedRequest.status}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Publicado:</span>
+                    <span className="detail-value">{formatDate(selectedRequest.createdAt)}</span>
+                  </div>
+                </div>
+                
+                {selectedRequest.description && (
+                  <div className="detail-item full-width">
+                    <span className="detail-label">Descrição:</span>
+                    <p className="detail-description">{selectedRequest.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedRequest.aiPreviewImage && (
+                <div className="request-details-section">
+                  <h3>🎨 Preview Gerado com IA</h3>
+                  <div className="ai-preview-display">
+                    <img src={selectedRequest.aiPreviewImage} alt="Preview IA" className="ai-preview-img" />
+                  </div>
+                </div>
+              )}
+
+              <div className="request-details-section">
+                <h3>💬 {userType === 'customer' ? 'Propostas Recebidas' : 'Informações de Propostas'} ({requestProposals.length})</h3>
+                {userType === 'woodworker' ? (
+                  <p className="no-proposals">
+                    {requestProposals.length === 0 
+                      ? 'Seja o primeiro a enviar uma proposta!' 
+                      : `${requestProposals.length} ${requestProposals.length === 1 ? 'marceneiro já enviou' : 'marceneiros já enviaram'} proposta${requestProposals.length > 1 ? 's' : ''} para esta solicitação.`
+                    }
+                  </p>
+                ) : loadingProposals ? (
+                  <p className="no-proposals">Carregando propostas...</p>
+                ) : requestProposals.length === 0 ? (
+                  <p className="no-proposals">Nenhuma proposta recebida ainda. Os marceneiros serão notificados!</p>
+                ) : (
+                  <div className="proposals-list">
+                    {requestProposals.map((proposal, index) => (
+                      <div key={index} className="proposal-card">
+                        <div className="proposal-header">
+                          <span className="woodworker-name">{proposal.woodworkerName}</span>
+                          <span className="proposal-price">{proposal.price}</span>
+                        </div>
+                        <p className="proposal-message">{proposal.message}</p>
+                        <div className="proposal-actions">
+                          {proposal.status === 'PENDING' ? (
+                            <>
+                              <button 
+                                className="btn-accept" 
+                                onClick={() => handleAcceptProposal(proposal.id)}
+                              >
+                                Aceitar Proposta
+                              </button>
+                              <button 
+                                className="btn-reject" 
+                                onClick={() => handleRejectProposal(proposal.id)}
+                              >
+                                Rejeitar
+                              </button>
+                            </>
+                          ) : (
+                            <span className={`proposal-status ${proposal.status.toLowerCase()}`}>
+                              {proposal.status === 'ACCEPTED' ? '✅ Aceita' : '❌ Rejeitada'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Proposal Modal */}
+      {showProposalModal && selectedRequest && (
+        <div className="modal-overlay" onClick={closeProposalModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Enviar Proposta</h2>
+              <button className="modal-close" onClick={closeProposalModal}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="proposal-request-info">
+                <h3>{translateFurnitureType(selectedRequest.furnitureType)} em {translateMaterial(selectedRequest.material)}</h3>
+                {selectedRequest.description && <p>{selectedRequest.description}</p>}
+              </div>
+
+              <form onSubmit={handleSubmitProposal} className="proposal-form">
+                <div className="form-group">
+                  <label>Preço da Proposta *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: R$ 2.500,00"
+                    value={proposalPrice}
+                    onChange={(e) => setProposalPrice(handleCurrencyInput(e.target.value))}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Mensagem / Observações *</label>
+                  <textarea
+                    rows="6"
+                    placeholder="Descreva sua proposta, prazo de entrega, materiais que utilizará, etc."
+                    value={proposalMessage}
+                    onChange={(e) => setProposalMessage(e.target.value)}
+                    required
+                  ></textarea>
+                </div>
+
+                <div className="form-group">
+                  <label>Imagens do Projeto (opcional)</label>
+                  <p style={{ fontSize: '0.9rem', color: '#718096', marginTop: '0.5rem' }}>
+                    💡 Funcionalidade de upload de imagens será implementada em breve
+                  </p>
+                </div>
+
+                <div className="proposal-form-actions">
+                  <button 
+                    type="button" 
+                    className="btn-cancel" 
+                    onClick={closeProposalModal}
+                    disabled={submittingProposal}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn-submit-proposal"
+                    disabled={submittingProposal}
+                  >
+                    {submittingProposal ? 'Enviando...' : 'Enviar Proposta'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -49,6 +49,7 @@ public class FurnitureRequestController {
             request.setDimensions(dto.getDimensions());
             request.setDescription(dto.getDescription());
             request.setBudget(dto.getBudget());
+            request.setAiPreviewImage(dto.getAiPreviewImage());
             request.setStatus("ACTIVE");
             request.setCreatedAt(LocalDateTime.now());
             

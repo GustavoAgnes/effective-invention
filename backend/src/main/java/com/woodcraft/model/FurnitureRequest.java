@@ -30,6 +30,9 @@ public class FurnitureRequest {
     
     private String budget;
     
+    @Column(length = 1000000) // Large field for base64 image (up to 1MB)
+    private String aiPreviewImage;
+    
     @Column(nullable = false)
     private String status = "ACTIVE"; // ACTIVE, ACCEPTED, COMPLETED, CANCELLED
     
@@ -144,5 +147,13 @@ public class FurnitureRequest {
     
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    
+    public String getAiPreviewImage() {
+        return aiPreviewImage;
+    }
+    
+    public void setAiPreviewImage(String aiPreviewImage) {
+        this.aiPreviewImage = aiPreviewImage;
     }
 }
