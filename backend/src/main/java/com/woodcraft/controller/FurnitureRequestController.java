@@ -145,4 +145,33 @@ public class FurnitureRequestController {
                 .body(Map.of("error", e.getMessage()));
         }
     }
+    
+    @GetMapping("/rejected")
+    public ResponseEntity<?> getRejectedRequests(@RequestParam String email) {
+        try {
+            User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Get all rejected request IDs for this woodworker
+            List<com.woodcraft.model.RejectedRequest> rejections = rejectedRequestRepository.findByWoodworkerId(user.getId());
+            List<Long> rejectedIds = rejections.stream()
+                .map(com.woodcraft.model.RejectedRequest::getRequestId)
+                .collect(java.util.stream.Collectors.toList());
+            
+            // Get the actual requests
+            List<FurnitureRequest> rejectedRequests = new java.util.ArrayList<>();
+            for (Long requestId : rejectedIds) {
+                requestRepository.findById(requestId).ifPresent(rejectedRequests::add);
+            }
+            
+            // Sort by created date descending
+            rejectedRequests.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+            
+            return ResponseEntity.ok(rejectedRequests);
+        } catch (Exception e) {
+            logger.error("Error fetching rejected requests", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
 }
