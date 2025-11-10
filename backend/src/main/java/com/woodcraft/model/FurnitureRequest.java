@@ -30,7 +30,8 @@ public class FurnitureRequest {
     
     private String budget;
     
-    @Column(length = 1000000) // Large field for base64 image (up to 1MB)
+    @Lob // Large object for base64 image (no size limit)
+    @Column(columnDefinition = "CLOB")
     private String aiPreviewImage;
     
     @Column(nullable = false)
