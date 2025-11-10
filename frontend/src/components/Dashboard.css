@@ -327,8 +327,7 @@
   border: 1px solid rgba(124, 179, 66, 0.08);
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
-  min-height: 200px;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }
@@ -337,6 +336,12 @@
   .card {
     padding: 2rem;
   }
+}
+
+/* Only apply min-height to list cards */
+.card.list-card {
+  min-height: 200px;
+  overflow: hidden;
 }
 
 .card::before {
@@ -389,6 +394,10 @@
 .card-content {
   margin-bottom: 1.5rem;
   flex: 1;
+}
+
+/* Only apply scroll to specific cards that need it */
+.card.scrollable .card-content {
   overflow-y: auto;
   max-height: 400px;
 }
