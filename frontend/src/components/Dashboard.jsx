@@ -31,6 +31,7 @@ const Dashboard = ({ user, onLogout }) => {
   const [pendingProposals, setPendingProposals] = useState([])
   const [acceptedProposals, setAcceptedProposals] = useState([])
   const [rejectedProposals, setRejectedProposals] = useState([])
+  const [rejectedProposalsRequests, setRejectedProposalsRequests] = useState([])
   
   // Modal state
   const [showRequestDetails, setShowRequestDetails] = useState(false)
@@ -110,8 +111,24 @@ const Dashboard = ({ user, onLogout }) => {
   const loadActiveRequests = async () => {
     setLoadingRequests(true)
     try {
-      const response = await axios.get(`http://localhost:8080/api/requests/active?email=${user.email}`)
-      setActiveRequests(response.data)
+      const [requestsResponse, proposalsResponse] = await Promise.all([
+        axios.get(`http://localhost:8080/api/requests/active?email=${user.email}`),
+        axios.get(`http://localhost:8080/api/proposals/my-proposals?email=${user.email}`)
+      ])
+      
+      const allRequests = requestsResponse.data
+      const myProposals = proposalsResponse.data
+      
+      // Filter out requests where I have a rejected proposal
+      const requestsWithRejectedProposals = myProposals
+        .filter(p => p.status === 'REJECTED')
+        .map(p => p.requestId)
+      
+      const filteredRequests = allRequests.filter(
+        request => !requestsWithRejectedProposals.includes(request.id)
+      )
+      
+      setActiveRequests(filteredRequests)
     } catch (error) {
       console.error('Error loading active requests:', error)
     } finally {
@@ -159,6 +176,20 @@ const Dashboard = ({ user, onLogout }) => {
       setPendingProposals(pending.data)
       setAcceptedProposals(accepted.data)
       setRejectedProposals(rejected.data)
+      
+      // Load full request details for rejected proposals
+      const rejectedRequestIds = rejected.data.map(p => p.requestId)
+      if (rejectedRequestIds.length > 0) {
+        const requestsPromises = rejectedRequestIds.map(id =>
+          axios.get(`http://localhost:8080/api/requests/active`).then(res =>
+            res.data.find(r => r.id === id)
+          )
+        )
+        const requests = await Promise.all(requestsPromises)
+        setRejectedProposalsRequests(requests.filter(r => r !== undefined))
+      } else {
+        setRejectedProposalsRequests([])
+      }
     } catch (error) {
       console.error('Error loading woodworker proposals:', error)
     }
@@ -831,19 +862,44 @@ const Dashboard = ({ user, onLogout }) => {
               <div className="card">
                 <div className="card-header">
                   <h3>❌ Propostas Rejeitadas pelo Cliente</h3>
-                  <span className="card-count">{rejectedProposals.length}</span>
+                  <span className="card-count">{rejectedProposalsRequests.length}</span>
                 </div>
                 <div className="card-content">
-                  {rejectedProposals.length === 0 ? (
+                  {rejectedProposalsRequests.length === 0 ? (
                     <p style={{ textAlign: 'center', color: '#718096' }}>Nenhuma proposta rejeitada pelo cliente.</p>
                   ) : (
-                    rejectedProposals.slice(0, 2).map((proposal) => (
-                      <div key={proposal.id} className="proposal-item rejected">
-                        <div className="proposal-info">
-                          <span className="proposal-title">Proposta de {proposal.price}</span>
-                          <span className="proposal-meta">{formatDate(proposal.createdAt)}</span>
+                    rejectedProposalsRequests.slice(0, 2).map((request) => (
+                      <div key={request.id} className="customer-request">
+                        <div 
+                          className="request-header clickable" 
+                          onClick={() => openRequestDetails(request)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <span className="request-title">
+                            {translateFurnitureType(request.furnitureType)} em {translateMaterial(request.material)}
+                          </span>
+                          <span className="request-time">{formatDate(request.createdAt)}</span>
                         </div>
-                        <span className="project-status cancelled">Rejeitada</span>
+                        {request.description && (
+                          <p className="request-description">{request.description}</p>
+                        )}
+                        <div className="request-specs">
+                          <span className="spec-tag">🪵 {translateMaterial(request.material)}</span>
+                          {request.dimensions && <span className="spec-tag">📏 {request.dimensions}</span>}
+                          {request.budget && <span className="spec-tag">💰 {request.budget}</span>}
+                          {!request.budget && <span className="spec-tag">💰 Orçamento aberto</span>}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button className="proposal-btn" onClick={() => openProposalModal(request)}>
+                            Enviar Nova Proposta
+                          </button>
+                          <button 
+                            className="proposal-btn-secondary" 
+                            onClick={() => openRequestDetails(request)}
+                          >
+                            Ver Detalhes
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}
